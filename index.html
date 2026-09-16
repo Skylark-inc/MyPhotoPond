@@ -118,6 +118,18 @@
           <span>Ella</span>
           <span class="button-arrow" aria-hidden="true">↗</span>
         </a>
+
+        <!-- New in v1.2 -->
+        <a
+          class="pond-btn light-purple"
+          href="PAIGE_URL_HERE"
+          target="_blank"
+          rel="noopener"
+        >
+          <span>Paige</span>
+          <span class="button-arrow" aria-hidden="true">↗</span>
+        </a>
+
       </div>
     </section>
 
@@ -130,11 +142,13 @@
 
     <footer class="footer">
       <div class="footer-row">
-        <span class="version">v1.1.1</span>
+        <span class="version">v1.2</span>
 
         <span class="disclaimer">
-          Images and characters do not belong to MyPhotoPond. All rights are
-          reserved to their respective creators. Visit
+          MyPhotoPond does not own any artwork displayed or linked through this
+          service and is not affiliated with or endorsed by any artists,
+          creators, or individuals featured. All rights belong to their
+          respective owners. Visit
           <a
             class="footer-link"
             href="https://x.com/myphotopond"
@@ -153,46 +167,78 @@
     (() => {
       const secretAlbum = document.getElementById("secretAlbum");
       const cover = secretAlbum?.querySelector(".secret-cover");
+      const zeroAlbum = secretAlbum?.querySelector(".secret-zero");
 
-      if (!secretAlbum || !cover) return;
+      if (!secretAlbum || !cover || !zeroAlbum) return;
 
+      let activeElement = null;
       let startX = 0;
       let startY = 0;
       let currentX = 0;
       let dragging = false;
       let horizontalGesture = false;
-      let suppressClick = false;
+      let suppressCoverClick = false;
+      let suppressZeroClick = false;
 
-      const revealAlbum = () => {
+      const clearInlineStyles = element => {
+        element.style.removeProperty("transform");
+        element.style.removeProperty("opacity");
+        element.style.removeProperty("transition");
+      };
+
+      const resetAllStyles = () => {
+        clearInlineStyles(cover);
+        clearInlineStyles(zeroAlbum);
+      };
+
+      const revealZero = () => {
         secretAlbum.classList.add("revealed");
-
-        cover.style.removeProperty("transform");
-        cover.style.removeProperty("opacity");
-        cover.style.removeProperty("transition");
+        resetAllStyles();
       };
 
-      const resetCover = () => {
-        cover.style.removeProperty("transform");
-        cover.style.removeProperty("opacity");
-        cover.style.removeProperty("transition");
+      const restoreMatter = () => {
+        secretAlbum.classList.remove("revealed");
+        resetAllStyles();
       };
 
-      cover.addEventListener("pointerdown", event => {
-        if (secretAlbum.classList.contains("revealed")) return;
+      const beginGesture = (event, element) => {
+        activeElement = element;
 
         startX = event.clientX;
         startY = event.clientY;
         currentX = 0;
+
         dragging = true;
         horizontalGesture = false;
-        suppressClick = false;
 
-        cover.setPointerCapture(event.pointerId);
-        cover.style.transition = "none";
+        element.setPointerCapture(event.pointerId);
+        element.style.transition = "none";
+      };
+
+      const cancelGesture = () => {
+        dragging = false;
+        horizontalGesture = false;
+        currentX = 0;
+        activeElement = null;
+
+        resetAllStyles();
+      };
+
+
+      /*
+        Swipe LEFT on Matter+
+        Reveals 0
+      */
+
+      cover.addEventListener("pointerdown", event => {
+        if (secretAlbum.classList.contains("revealed")) return;
+
+        suppressCoverClick = false;
+        beginGesture(event, cover);
       });
 
       cover.addEventListener("pointermove", event => {
-        if (!dragging) return;
+        if (!dragging || activeElement !== cover) return;
 
         const deltaX = event.clientX - startX;
         const deltaY = event.clientY - startY;
@@ -201,8 +247,7 @@
           if (Math.abs(deltaX) < 7 && Math.abs(deltaY) < 7) return;
 
           if (Math.abs(deltaY) > Math.abs(deltaX)) {
-            dragging = false;
-            resetCover();
+            cancelGesture();
             return;
           }
 
@@ -215,7 +260,7 @@
         }
 
         currentX = deltaX;
-        suppressClick = Math.abs(deltaX) > 10;
+        suppressCoverClick = Math.abs(deltaX) > 10;
 
         const width = cover.offsetWidth || 240;
         const progress = Math.min(Math.abs(deltaX) / width, 1);
@@ -225,7 +270,7 @@
       });
 
       cover.addEventListener("pointerup", event => {
-        if (!dragging && !horizontalGesture) return;
+        if (activeElement !== cover) return;
 
         dragging = false;
 
@@ -238,25 +283,122 @@
         const threshold = Math.min(80, cover.offsetWidth * 0.28);
 
         if (currentX <= -threshold) {
-          suppressClick = true;
-          revealAlbum();
+          suppressCoverClick = true;
+          revealZero();
         } else {
-          resetCover();
+          resetAllStyles();
+        }
+
+        activeElement = null;
+        horizontalGesture = false;
+        currentX = 0;
+      });
+
+      cover.addEventListener("pointercancel", cancelGesture);
+
+      cover.addEventListener("click", event => {
+        if (suppressCoverClick) {
+          event.preventDefault();
+          event.stopPropagation();
+          suppressCoverClick = false;
         }
       });
 
-      cover.addEventListener("pointercancel", () => {
-        dragging = false;
-        horizontalGesture = false;
-        suppressClick = false;
-        resetCover();
+
+      /*
+        Swipe RIGHT on 0
+        Restores Matter+
+      */
+
+      zeroAlbum.addEventListener("pointerdown", event => {
+        if (!secretAlbum.classList.contains("revealed")) return;
+
+        suppressZeroClick = false;
+        beginGesture(event, zeroAlbum);
       });
 
-      cover.addEventListener("click", event => {
-        if (suppressClick) {
+      zeroAlbum.addEventListener("pointermove", event => {
+        if (!dragging || activeElement !== zeroAlbum) return;
+
+        const deltaX = event.clientX - startX;
+        const deltaY = event.clientY - startY;
+
+        if (!horizontalGesture) {
+          if (Math.abs(deltaX) < 7 && Math.abs(deltaY) < 7) return;
+
+          if (Math.abs(deltaY) > Math.abs(deltaX)) {
+            cancelGesture();
+            return;
+          }
+
+          horizontalGesture = true;
+        }
+
+        if (deltaX <= 0) {
+          currentX = 0;
+          return;
+        }
+
+        currentX = deltaX;
+        suppressZeroClick = deltaX > 10;
+
+        const width = zeroAlbum.offsetWidth || 240;
+        const progress = Math.min(deltaX / width, 1);
+
+        /*
+          0 follows the finger to the right.
+        */
+        zeroAlbum.style.transform =
+          `translate3d(${deltaX}px, 0, 0)`;
+
+        zeroAlbum.style.opacity =
+          String(1 - progress * 0.38);
+
+        /*
+          Matter+ slides back underneath it.
+        */
+        const coverOffset = Math.min(deltaX - width, 0);
+
+        cover.style.transition = "none";
+        cover.style.transform =
+          `translate3d(${coverOffset}px, 0, 0)`;
+        cover.style.opacity = String(progress);
+      });
+
+      zeroAlbum.addEventListener("pointerup", event => {
+        if (activeElement !== zeroAlbum) return;
+
+        dragging = false;
+
+        if (zeroAlbum.hasPointerCapture(event.pointerId)) {
+          zeroAlbum.releasePointerCapture(event.pointerId);
+        }
+
+        zeroAlbum.style.transition = "";
+        cover.style.transition = "";
+
+        const threshold =
+          Math.min(80, zeroAlbum.offsetWidth * 0.28);
+
+        if (currentX >= threshold) {
+          suppressZeroClick = true;
+          restoreMatter();
+        } else {
+          resetAllStyles();
+        }
+
+        activeElement = null;
+        horizontalGesture = false;
+        currentX = 0;
+      });
+
+      zeroAlbum.addEventListener("pointercancel", cancelGesture);
+
+      zeroAlbum.addEventListener("click", event => {
+        if (suppressZeroClick) {
           event.preventDefault();
           event.stopPropagation();
-          suppressClick = false;
+          suppressZeroClick = false;
         }
       });
     })();
