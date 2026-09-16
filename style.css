@@ -1,8 +1,9 @@
-/* MyPhotoPond v1.1.1
+/* MyPhotoPond v1.2
    - Apple-inspired visual redesign
    - Responsive album grid
    - Automatic light and dark mode
-   - Hidden swipe album beneath Matter+
+   - Reversible hidden swipe album beneath Matter+
+   - Added Paige
 */
 
 :root{
@@ -36,6 +37,7 @@
   --orange: #ff9500;
   --light-pink: #ffb6d9;
   --green: #34c759;
+  --light-purple: #c7a4ff;
   --black: #000000;
 
   /* Dark mode album colors */
@@ -47,6 +49,7 @@
   --orange-dark: #d77a00;
   --light-pink-dark: #b95382;
   --green-dark: #269947;
+  --light-purple-dark: #8f6bc7;
 }
 
 @media (prefers-color-scheme: dark){
@@ -228,6 +231,7 @@ a{
   box-shadow: var(--button-shadow);
 
   transform: translateZ(0);
+
   transition:
     transform 180ms cubic-bezier(0.25, 0.1, 0.25, 1),
     filter 180ms ease,
@@ -348,6 +352,15 @@ a{
   background: var(--green);
 }
 
+.light-purple{
+  background: var(--light-purple);
+  color: rgba(29, 29, 31, 0.92);
+}
+
+.light-purple .button-arrow{
+  background: rgba(29, 29, 31, 0.12);
+}
+
 .black{
   background: var(--black);
   color: #ffffff;
@@ -395,6 +408,15 @@ a{
   .green{
     background: var(--green-dark);
   }
+
+  .light-purple{
+    background: var(--light-purple-dark);
+    color: #ffffff;
+  }
+
+  .light-purple .button-arrow{
+    background: rgba(255, 255, 255, 0.18);
+  }
 }
 
 /* Hidden swipe album */
@@ -424,6 +446,13 @@ a{
 .secret-zero{
   position: relative;
   z-index: 1;
+
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+.secret-zero:active{
+  cursor: grabbing;
 }
 
 .secret-cover{
